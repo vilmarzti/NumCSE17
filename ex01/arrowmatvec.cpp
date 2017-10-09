@@ -53,6 +53,15 @@ void efficient_arrow_matrix_2_times_x(const VectorXd &d,
          "Vector size must be the same!");
     int n = d.size();
 
+    // Split A into 4 Different Blocks
+    //
+    //     D  |  a
+    // A = -  -  - 
+    //     aT |  d
+    // And use block multiplications to efficiently calculate y
+    //
+    // y = (y_head, y_tail) = AAx
+
     VectorXd d_head = d.head(n-1);
     VectorXd a_head = a.head(n-1);
     VectorXd x_head = x.head(n-1);
@@ -61,7 +70,7 @@ void efficient_arrow_matrix_2_times_x(const VectorXd &d,
     VectorXd DX = d_head.cwiseProduct(x_head);
 
     VectorXd DDX = d_head.cwiseProduct(DX);
-    VectorXd Dax = d_head.cwiseProduct(a_head) * a(n-1);
+    VectorXd Dax = d_head.cwiseProduct(a_head) * x(n-1);
     VectorXd aaX = a_head * aTX;
     VectorXd adx = a_head * d(n-1) * x(n-1);
 
