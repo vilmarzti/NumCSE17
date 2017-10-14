@@ -55,7 +55,19 @@ void multAminLoops(const VectorXd & x, VectorXd & y) {
  * \param[out] y = A*x
  */
 void multAmin(const VectorXd & x, VectorXd & y) {
-    // TODO: Implement an efifcient version of multAmin
+    size_t size = x.size();
+    VectorXd y_temp(size);
+    double val = 0;
+
+    // badly inefficient
+    for(int n=0; n<size; n++){
+        for(int j=n; j< size; j++){
+            val += x[j];
+        }
+        y_temp(n) = val;
+    }
+
+    y = y_temp;
 }
 
 int main(void) {
