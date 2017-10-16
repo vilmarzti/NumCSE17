@@ -92,7 +92,35 @@ void efficient_arrow_matrix_2_times_x(const VectorXd &d,
  * versions.
 */
 void runtime_arrow_matrix() {
-    // TODO: your code here, time the codes
+    for(int x=4; x<1024; x = x*2){
+        Timer t1, t2;
+        VectorXd a(x);
+        VectorXd d(x);
+        VectorXd vx(x);
+        VectorXd yi;
+
+        a.setRandom();
+        d.setRandom();
+        vx.setRandom();
+
+        for(int n=0; n<5; n++){
+            // naive test
+            t1.start();
+            arrow_matrix_2_times_x(a, d, vx, yi);
+            t1.stop();
+
+            // efficient test
+            t2.start();
+            efficient_arrow_matrix_2_times_x(a, d, vx, yi);
+            t2.stop();
+        }
+
+        std::cout << "Size " << x << std::endl;
+        std::cout << "Naive min:" << t1.min() << std::endl;
+        std::cout << "Effic min:" << t2.min() << std::endl;
+        std::cout << std::endl;
+
+    }
 
 }
 
@@ -111,8 +139,6 @@ int main(void) {
     arrow_matrix_2_times_x(a,d,x,yi);
     VectorXd ye(yi.size());
     efficient_arrow_matrix_2_times_x(a,d,x,ye);
-
-    std::cout << ye - yi << std::endl;
 
     // Compute error
     double err = (yi - ye).norm();
