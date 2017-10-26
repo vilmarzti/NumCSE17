@@ -1,52 +1,125 @@
 #include <iostream>
 #include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Sparse>
 #include <vector>
 
 using namespace Eigen;
 
-class MatrixCOO {
-	// TODO: implement COO data structures, conversion to CRS and to/from dense Eigen matrix.
-	// The level of abstraction is left to your choice:
-	// you can delete this and use raw vectors;
-	// (recommended) you can implement this as a wrapper and consider
-	// only matrices with entries of the double type;
-	// you can implement this as a template class.
-	// The same for conversions:
-	// you can work directly with the raw vectors;
-	// (recommended) you can implement functions toCRS and toDense for your wrappers;
-	// you can overload operator= for implicit/explicit conversion.
-    //
-    public:
-        MatrixCOO toCOO(MatrixXd &A);
+typedef std::vector<Eigen::Triplet<double> > T;
+
+class MatrixCRS {
+    public: 
+        MatrixCRS(MatrixXd &A);
+        MatrixXd get_dense();
     private:
-        std::vector<Eigen::Triplet<double>> TripletList;
+        std::vector<int> colInd;
+        std::vector<int> rowPtr;
+        std::vector<double> values;
+
+        size_t num_rows;
+        size_t num_cols;
 };
 
-
-MatrixCOO::MatrixCOO(std::vector<Eigen::Triplet<double>> T){
-    TripletList = T;
+class MatrixCOO {
+    public:
+        MatrixCOO(MatrixXd &A);
+        MatrixXd get_dense();
+    private:
+        T TripletList;
+        size_t num_rows;
+        size_t num_cols;
 };
 
-MatrixCOO MatrixCOO::toCOO(MatrixXd &A){
-    size_t num_cols = A.cols();
-    size_t num_rows = A.rows();
-    std::vector<Eigen::triplet<double>> Tlist;
+MatrixCRS::MatrixCRS(MatrixXd &A){
+    num_cols = A.cols();
+    num_rows = A.rows();
 
-    for(size_t n=0;n<num_rows;n++){
-        for(size_t m=0;m<num_cols;m++){
+    bool first_set;
+    bool empty_row = false;
+    double val;
+    for(size_t m=0; m<num_rows; m++){
+        first_set = false;
+
+        for(size_t n=0; n<num_cols; n++){
+            val = A(m, n);
+
+            if(val != 0){
+                values.push_back(val);
+                colInd.push_back(n);
+
+                // set rowpointer for the first value in each row
+                if(!first_set){
+                    first_set = true;
+                    rowPtr.push_back(values.size() - 1);
+                }
+
+                // add a second rowpointer as a marker for a zero column
+                if(empty_row){
+                    empty_row = false;
+                    rowPtr.push_back(values.size() - 1);
+                }
+            }
+        }
+
+        // check wheter a row is empty
+        if(!first_set){
+            empty_row = true;
+        }
+    }
+    rowPtr.push_back(values.size() - 1);
+}
+
+MatrixXd MatrixCRS::get_dense(){
+    MatrixXd A = MatrixXd::Zero(num_rows, num_cols);
+    
+
+    int row = 0;
+    // Go implicitly through all the rows
+    // increase the row number whenever we go to the next few rowpointers
+    for(size_t n=0; n<rowPtr.size() - 1; n++){
+        int rPtr = rowPtr.at(n);
+        int nextrPtr = rowPtr.at(n+1);
+
+        // set values according to rowpointers
+        for(int pos=rPtr; pos < nextrPtr; pos++ ){
+            int value = values.at(pos);
+            int column = colInd.at(pos);
+
+            A(row, column) = value;
+        }
+        
+        row += 1;
+    }
+
+    return A;
+}
+
+MatrixCOO::MatrixCOO(MatrixXd &A){
+    num_cols = A.cols();
+    num_rows = A.rows();
+        
+    for(size_t n=0; n<num_cols; n++){
+        for(size_t m=0; m<num_rows; m++){
+
             if(A(m,n) != 0){
-                Tlist.push(Triplet(m, n, A(m,n)));
+                TripletList.push_back(Triplet<double>(m, n, A(m,n)));
             }
         }
     }
-    return MatrixCOO(Tlist);
-};
+}
+
+MatrixXd MatrixCOO::get_dense(){
+    MatrixXd A = MatrixXd::Zero(num_rows, num_cols);
+    for(size_t n = 0; n< TripletList.size(); n++){
+        Triplet<double> trip = TripletList.at(n);
+        A(trip.row(), trip.col()) += trip.value();
+    }
+    
+    return A;
+}
 
 
 
-class MatrixCRS {
-	// TODO: implement CRS data structures, conversion to COO and to/from dense Eigen matrix.
-};
 
 int main() {
 	MatrixXd A(18,17);
@@ -68,6 +141,7 @@ int main() {
  		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
  		0,-1, 0, 0,-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4,-1,
  		0, 0,-1,-1, 0, 0, 0,-1, 0,-1, 0, 0, 0, 0, 0,-1, 5;
-	
-	// TODO: test correctness of implementend conversion methods on A
+    MatrixCRS B(A);
+    MatrixXd C = A - B.get_dense();
+    std::cout << C << std::endl;
 }
