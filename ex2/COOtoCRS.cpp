@@ -108,6 +108,7 @@ MatrixCOO::MatrixCOO(MatrixXd &A){
     }
 }
 
+
 MatrixXd MatrixCOO::get_dense(){
     MatrixXd A = MatrixXd::Zero(num_rows, num_cols);
     for(size_t n = 0; n< TripletList.size(); n++){
